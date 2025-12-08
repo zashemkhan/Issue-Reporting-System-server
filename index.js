@@ -33,8 +33,16 @@ async function run() {
   const db = client.db('PublicIssueReportingSystem')
   const reportGetCollection = db.collection('ReportGet')
 
+app.get('/issues', async (req, res) => {
+  const result = await reportGetCollection.find().toArray()
+  res.send(result)
+})
 
-
+app.post('/issues', async (req, res) => {
+  const report = req.body;
+  const result = await reportGetCollection.insertOne(report)
+  res.send(result)
+})
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
