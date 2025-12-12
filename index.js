@@ -53,78 +53,165 @@ async function run() {
     const usersCollection = db.collection('users');
     const reportGetCollection = db.collection('ReportGet');
 
+
+    // CREATE USER
+app.post('/user/create', verifyFBToken, async (req, res) => {
+  try {
+    const { email, uid } = res.locals.tokenData;
+    const { displayName, photoURL } = req.body;
+
+    const existingUser = await usersCollection.findOne({ email });
+    if (existingUser) {
+      return res.status(200).send(existingUser);
+    }
+
+    const newUser = {
+      uid,
+      email,
+      role: 'user',
+      displayName,
+      photoURL,
+      createdAT: new Date(),
+      updatedAT: new Date(),
+    };
+
+    const result = await usersCollection.insertOne(newUser);
+    const createdUser = await usersCollection.findOne({ email });
+
+    res.send(createdUser);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
     // user routes
-    app.post('/user/create', verifyFBToken, async (req, res) => {
-      const { email, uid } = res.locals.tokenData;
-      const { displayName, photoURL } = req.body;
+    // app.post('/user/create', verifyFBToken, async (req, res) => {
+    //   const { email, uid } = res.locals.tokenData;
+    //   const { displayName, photoURL } = req.body;
 
-      const user = await usersCollection.findOne({ email });
-      if (user) return res.status().send('user already exists');
+    //   const user = await usersCollection.findOne({ email });
+    //   if (user) return res.status(400).send('user already exists');
 
-      const newUserData = {
-        uid,
-        email,
-        role: 'user',
-        displayName,
-        photoURL,
-        createdAT: new Date(),
-        updatedAT: new Date(),
-      };
+    //   const newUserData = {
+    //     uid,
+    //     email,
+    //     role: 'user',
+    //     displayName,
+    //     photoURL,
+    //     createdAT: new Date(),
+    //     updatedAT: new Date(),
+    //   };
 
-      await usersCollection.insertOne(newUserData);
-      const createdUser = await usersCollection.findOne({ email });
+    //   await usersCollection.insertOne(newUserData);
+    //   const createdUser = await usersCollection.findOne({ email });
 
-      res.send(createdUser);
-    });
+    //   res.send(createdUser);
+    // });
+
+    // app.get('/user/user-profile', verifyFBToken, async (req, res) => {
+    //   const { email } = res.locals.tokenData;
+    //   const user = await usersCollection.findOne({ email });
+    //   res.send(user);
+    // });
 
     app.get('/user/user-profile', verifyFBToken, async (req, res) => {
-      const { email } = res.locals.tokenData;
-      const user = await usersCollection.findOne({ email });
-      res.send(user);
-    });
+  try {
+    const { email } = res.locals.tokenData;
+    const user = await usersCollection.findOne({ email });
+    res.send(user || null);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
+    // app.post('/user/social-login', verifyFBToken, async (req, res) => {
+    //   // console.log('request coming');
+    //   const { email, uid } = res.locals.tokenData;
+    //   const { displayName, photoURL } = req.body;
+
+    //   const user = await usersCollection.findOne({ email });
+    //   if (user) return res.send(user);
+
+    //   const newUserData = {
+    //     uid,
+    //     email,
+    //     role: 'user',
+    //     displayName,
+    //     photoURL,
+    //     createdAT: new Date(),
+    //     updatedAT: new Date(),
+    //   };
+
+    //   await usersCollection.insertOne(newUserData);
+    //   const createdUser = await usersCollection.findOne({ email });
+
+    //   res.send(createdUser);
+    // });
 
     app.post('/user/social-login', verifyFBToken, async (req, res) => {
-      // console.log('request coming');
-      const { email, uid } = res.locals.tokenData;
-      const { displayName, photoURL } = req.body;
+  try {
+    const { email, uid } = res.locals.tokenData;
+    const { displayName, photoURL } = req.body;
 
-      const user = await usersCollection.findOne({ email });
-      if (user) return res.send(user);
+    const existingUser = await usersCollection.findOne({ email });
+    if (existingUser) return res.send(existingUser);
 
-      const newUserData = {
-        uid,
-        email,
-        role: 'user',
-        displayName,
-        photoURL,
-        createdAT: new Date(),
-        updatedAT: new Date(),
-      };
+    const newUser = {
+      uid,
+      email,
+      role: 'user',
+      displayName,
+      photoURL,
+      createdAT: new Date(),
+      updatedAT: new Date(),
+    };
 
-      await usersCollection.insertOne(newUserData);
-      const createdUser = await usersCollection.findOne({ email });
+    await usersCollection.insertOne(newUser);
+    const createdUser = await usersCollection.findOne({ email });
 
-      res.send(createdUser);
-    });
+    res.send(createdUser);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+});
 
-    app.post('/user/update-profile', verifyFBToken, async (req, res) => {
-      const { email } = res.locals.tokenData;
-      const { displayName, photoURL } = req.body;
 
-      const updatedUserData = await usersCollection.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            displayName,
-            photoURL,
-          },
-        },
-        {
-          returnDocument: 'after',
-        }
-      );
-      res.send(updatedUserData);
-    });
+    // app.post('/user/update-profile', verifyFBToken, async (req, res) => {
+    //   const { email } = res.locals.tokenData;
+    //   const { displayName, photoURL } = req.body;
+
+    //   const updatedUserData = await usersCollection.findOneAndUpdate(
+    //     { email },
+    //     {
+    //       $set: {
+    //         displayName,
+    //         photoURL,
+    //       },
+    //     },
+    //     {
+    //       returnDocument: 'after',
+    //     }
+    //   );
+    //   res.send(updatedUserData);
+    // });
+app.post('/user/update-profile', verifyFBToken, async (req, res) => {
+  try {
+    const { email } = res.locals.tokenData;
+    const { displayName, photoURL } = req.body;
+
+    const updatedUser = await usersCollection.findOneAndUpdate(
+      { email },
+      { $set: { displayName, photoURL, updatedAT: new Date() } },
+      { returnDocument: 'after' }
+    );
+
+    res.send(updatedUser);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+});
 
     // Staff routes
     app.get('/admin/staff-list', verifyFBToken, async (req, res) => {
