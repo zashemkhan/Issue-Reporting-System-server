@@ -53,8 +53,6 @@ async function run() {
     const usersCollection = db.collection('users');
     const reportGetCollection = db.collection('ReportGet');
 
-
-
     // user routes
     app.post('/user/create', verifyFBToken, async (req, res) => {
       const { email, uid } = res.locals.tokenData;
@@ -85,7 +83,6 @@ async function run() {
       res.send(user);
     });
 
- 
     app.post('/user/social-login', verifyFBToken, async (req, res) => {
       // console.log('request coming');
       const { email, uid } = res.locals.tokenData;
@@ -110,8 +107,6 @@ async function run() {
       res.send(createdUser);
     });
 
-
-
     app.post('/user/update-profile', verifyFBToken, async (req, res) => {
       const { email } = res.locals.tokenData;
       const { displayName, photoURL } = req.body;
@@ -130,7 +125,12 @@ async function run() {
       );
       res.send(updatedUserData);
     });
- 
+
+    //Manage users
+    app.get('/admin/manage-users', verifyFBToken, async(req, res) => {
+      const manageUsers = await usersCollection.find({role: 'user'}).toArray()
+      res.send(manageUsers)
+    })
 
     // Staff routes
     app.get('/admin/staff-list', verifyFBToken, async (req, res) => {
@@ -215,6 +215,16 @@ async function run() {
       const result = await reportGetCollection.findOne(query);
       res.send(result);
     });
+    app.patch('/issue/update-status/:id', async (req, res) => {
+      const id = req.params.id;
+      const { priority } = req.body;
+
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { priority: 'high' } };
+
+      const result = await reportGetCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
 
     app.post('/issues', verifyFBToken, async (req, res) => {
       const { email } = res.locals.tokenData;
@@ -235,59 +245,54 @@ async function run() {
       res.send(result);
     });
 
- 
-
     // upvotes
-app.patch('/issue/upvotes', verifyFBToken, async (req, res) => {
-  const { _id } = req.body;
-  const { uid } = res.locals.tokenData; 
+    app.patch('/issue/upvotes', verifyFBToken, async (req, res) => {
+      const { _id } = req.body;
+      const { uid } = res.locals.tokenData;
 
-  const issue = await reportGetCollection.findOne({
-    _id: new ObjectId(_id),
-  });
+      const issue = await reportGetCollection.findOne({
+        _id: new ObjectId(_id),
+      });
 
-  if (!issue) return res.status(404).send('Issue not found');
+      if (!issue) return res.status(404).send('Issue not found');
 
-  if (issue.createdBy === uid) {
-    return res.status(403).send('You cannot upvote your own issue');
-  }
+      if (issue.createdBy === uid) {
+        return res.status(403).send('You cannot upvote your own issue');
+      }
 
-  const updated = await reportGetCollection.findOneAndUpdate(
-    { _id: new ObjectId(_id) },
-    { $inc: { upvotes: 1 } },
-    { returnDocument: 'after' }
-  );
+      const updated = await reportGetCollection.findOneAndUpdate({ _id: new ObjectId(_id) }, { $inc: { upvotes: 1 } }, { returnDocument: 'after' });
 
-  res.send(updated);
-});
-
+      res.send(updated);
+    });
 
     // payment related apis
 
     app.post('/create-checkout-session', async (req, res) => {
       const { email, issueId } = req.body;
-      const session = await stripe.checkout.sessions.create({
-        line_items: [
-          {
-            // Provide the exact Price ID (for example, price_1234) of the product you want to sell
-            price_data: {
-              currency: 'USD',
-              unit_amount: 'price_1N2ABCDEF12345',
+      try {
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                unit_amount: 1 * 100,
+                product_data: { name: 'Premium Subscription' },
+              },
+              quantity: 1,
             },
-            quantity: 1,
-          },
-        ],
-
-        customer_email: email,
-        mode: 'payment',
-        metadata: {
-          issueId: issueId,
-        },
-        success_url: `${process.env.DOMAIN}/payment-success`,
-        success_url: `${process.env.DOMAIN}/payment-cancel`,
-      });
-      console.log(session);
-      res.send({ url: session.url });
+          ],
+          mode: 'payment',
+          customer_email: email,
+          metadata: { issueId },
+          success_url: `${process.env.DOMAIN}/payment-success`,
+          cancel_url: `${process.env.DOMAIN}/payment-cancel`,
+        });
+        res.send({ url: session.url });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({ error: 'Stripe session creation failed' });
+      }
     });
 
     // Send a ping to confirm a successful connection
