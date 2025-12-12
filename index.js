@@ -77,7 +77,7 @@ async function run() {
       res.send(createdUser);
     });
 
-    app.post('/user/user-profile', verifyFBToken, async (req, res) => {
+    app.get('/user/user-profile', verifyFBToken, async (req, res) => {
       const { email } = res.locals.tokenData;
       const user = await usersCollection.findOne({ email });
       res.send(user);
