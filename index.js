@@ -45,10 +45,13 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    await client.db('admin').command({ ping: 1 });
+    console.log('Pinged your deployment. You successfully connected to MongoDB!');
+
     const db = client.db('PublicIssueReportingSystem');
 
     const usersCollection = db.collection('users');
@@ -128,10 +131,10 @@ async function run() {
     });
 
     //Manage users
-    app.get('/admin/manage-users', verifyFBToken, async(req, res) => {
-      const manageUsers = await usersCollection.find({role: 'user'}).toArray()
-      res.send(manageUsers)
-    })
+    app.get('/admin/manage-users', verifyFBToken, async (req, res) => {
+      const manageUsers = await usersCollection.find({ role: 'user' }).toArray();
+      res.send(manageUsers);
+    });
 
     // Staff routes
     app.get('/admin/staff-list', verifyFBToken, async (req, res) => {
@@ -295,13 +298,8 @@ async function run() {
         res.status(500).send({ error: 'Stripe session creation failed' });
       }
     });
-
-    // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 });
-    console.log('Pinged your deployment. You successfully connected to MongoDB!');
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+  } catch (err) {
+    console.log(err);
   }
 }
 run().catch(console.dir);
