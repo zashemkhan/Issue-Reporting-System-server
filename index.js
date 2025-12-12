@@ -44,7 +44,8 @@ const client = new MongoClient(uri, {
   },
 });
 
-async function run() {
+async function run(callback) {
+  callback();
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
@@ -303,8 +304,12 @@ async function run() {
     // await client.close();
   }
 }
-run().catch(console.dir);
-
-app.listen(PORT, () => {
+run(() => {
+  app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
+}).catch(console.dir);
+
+// app.listen(PORT, () => {
+//   console.log(`Example app listening on port ${PORT}`);
+// });
