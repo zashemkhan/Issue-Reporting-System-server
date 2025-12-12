@@ -44,7 +44,7 @@ const client = new MongoClient(uri, {
   },
 });
 
-async function run() {
+async function run(callback) {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
@@ -298,10 +298,16 @@ async function run() {
         res.status(500).send({ error: 'Stripe session creation failed' });
       }
     });
+    callback(null);
   } catch (err) {
-    console.log(err);
+    callback(err);
   }
 }
-run().catch(console.dir);
-
-module.exports = app;
+run((err) => {
+  app.listen(PORT, async () => {
+    if (err) {
+      console.log('MongoDB connection failed');
+    }
+    console.log(`server listening on port ${PORT}`);
+  });
+}).catch(console.dir);
