@@ -73,6 +73,7 @@ async function run(callback) {
         displayName,
         photoURL,
         isSubscribed: false,
+        isblock: false,
         createdAT: new Date(),
         updatedAT: new Date(),
       };
@@ -104,6 +105,7 @@ async function run(callback) {
         displayName,
         photoURL,
         isSubscribed: false,
+        isblock: false,
         createdAT: new Date(),
         updatedAT: new Date(),
       };
@@ -206,75 +208,36 @@ async function run(callback) {
       res.send({ message: 'Issue assigned to staff successfully' });
     });
 
-    // app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
-    //   const { email } = res.locals.tokenData;
-    //   const assignments = await assignedIssues.find({ staffEmail: email }).toArray();
-    //   const issueIds = assignments.map((a) => new ObjectId(a.issueId));
+    app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
+      try {
+        const { email } = res.locals.tokenData;
 
-    //   const issues = await reportGetCollection.find({ _id: { $in: issueIds } }).toArray();
+        const assignments = await assignedIssues.find({ staffEmail: email }).toArray();
 
-    //   const sanitizedIssues = assignments.map((assignment) => {
-    //     console.log(assignment);
-    //     const issue = issues.find((issue) => issue._id.toString() === assignment.issueId);
-    //     return {
-    //       issueId: issue._id,
-    //       title: issue.title,
-    //       status: issue.status,
-    //     };
-    //   });
+        const issueIds = assignments.map((a) => new ObjectId(a.issueId));
 
-    //   res.send(sanitizedIssues);
-    // });
+        const issues = await reportGetCollection.find({ _id: { $in: issueIds } }).toArray();
 
+        const sanitizedIssues = assignments
+          .map((assignment) => {
+            const issue = issues.find((i) => i._id.equals(new ObjectId(assignment.issueId)));
 
+            if (!issue) return null;
 
+            return {
+              issueId: issue._id,
+              title: issue.title,
+              status: issue.status,
+            };
+          })
+          .filter(Boolean); // remove nulls
 
-
-
-app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
-  try {
-    const { email } = res.locals.tokenData;
-
-    const assignments = await assignedIssues
-      .find({ staffEmail: email })
-      .toArray();
-
-    const issueIds = assignments.map(
-      (a) => new ObjectId(a.issueId)
-    );
-
-    const issues = await reportGetCollection
-      .find({ _id: { $in: issueIds } })
-      .toArray();
-
-    const sanitizedIssues = assignments
-      .map((assignment) => {
-        const issue = issues.find(
-          (i) => i._id.equals(new ObjectId(assignment.issueId))
-        );
-
-        if (!issue) return null;
-
-        return {
-          issueId: issue._id,
-          title: issue.title,
-          status: issue.status,
-        };
-      })
-      .filter(Boolean); // remove nulls
-
-    res.send(sanitizedIssues);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ message: 'Failed to load assigned issues' });
-  }
-});
-
-
-
-
-
-
+        res.send(sanitizedIssues);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: 'Failed to load assigned issues' });
+      }
+    });
 
     app.patch('/staff/update-issue-status', verifyFBToken, async (req, res) => {
       const { issueId, status } = req.body;
@@ -291,8 +254,8 @@ app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
     // issue routes
     app.get('/issues', async (req, res) => {
       try {
-        const { limit = 7, skip = 0, category, search } = req.query;
-
+        const { skip = 0, category, search } = req.query;
+        const limit = parseInt(req.query.limit);
         const query = {};
 
         // Category filter
@@ -305,7 +268,7 @@ app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
           query.$or = [{ title: { $regex: search, $options: 'i' } }, { location: { $regex: search, $options: 'i' } }];
         }
 
-        const result = await reportGetCollection.find(query).sort({ priority: 1 }).skip(Number(skip)).limit(Number(limit)).project({ description: 0 }).toArray();
+        const result = await reportGetCollection.find(query).limit(limit).sort({ priority: 1 }).skip(Number(skip)).project({ description: 0 }).toArray();
 
         const count = await reportGetCollection.countDocuments(query);
 
@@ -408,6 +371,52 @@ app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
       );
 
       res.send(updated);
+    });
+
+    app.patch('/users/subscribe/:email', async (req, res) => {
+      const email = req.params.email;
+
+      const result = await usersCollection.updateOne(
+        { email: email },
+        {
+          $set: {
+            isSubscribed: true,
+          },
+        }
+      );
+
+      res.send(result);
+    });
+
+    
+
+    app.patch('/users/block/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            isblock: true,
+          },
+        }
+      );
+
+      res.send(result);
+    });
+    app.patch('/users/unblock/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            isblock: false,
+          },
+        }
+      );
+
+      res.send(result);
     });
 
     app.post('/create-checkout-session', async (req, res) => {
