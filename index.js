@@ -135,6 +135,11 @@ async function run(callback) {
       res.send(updatedUserData);
     });
 
+    app.get('/user/role', async (req, res) => {
+      const query =  {}
+      const result = await usersCollection.find(query).toArray()
+      res.send(result)
+    })
     //Manage users
     app.get('/admin/manage-users', verifyFBToken, async (req, res) => {
       const manageUsers = await usersCollection.find({ role: 'user' }).toArray();
