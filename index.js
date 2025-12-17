@@ -136,10 +136,10 @@ async function run(callback) {
     });
 
     app.get('/user/role', async (req, res) => {
-      const query =  {}
-      const result = await usersCollection.find(query).toArray()
-      res.send(result)
-    })
+      const query = {};
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
     //Manage users
     app.get('/admin/manage-users', verifyFBToken, async (req, res) => {
       const manageUsers = await usersCollection.find({ role: 'user' }).toArray();
@@ -213,6 +213,9 @@ async function run(callback) {
       res.send({ message: 'Issue assigned to staff successfully' });
     });
 
+
+
+
     app.get('/staff/assigned-issues', verifyFBToken, async (req, res) => {
       try {
         const { email } = res.locals.tokenData;
@@ -253,7 +256,7 @@ async function run(callback) {
           status,
         },
       });
-      res.send('tham betta');
+      res.send('success');
     });
 
     // issue routes
@@ -270,9 +273,7 @@ async function run(callback) {
 
         // Search filter
         if (search) {
-          query.$or = [{ title: { $regex: search, $options: 'i' } },
-             { location: { $regex: search, $options: 'i' } },
-             { status: { $regex: search, $options: 'i' } }];
+          query.$or = [{ title: { $regex: search, $options: 'i' } }, { location: { $regex: search, $options: 'i' } }, { status: { $regex: search, $options: 'i' } }];
         }
 
         const result = await reportGetCollection.find(query).limit(limit).sort({ priority: 1 }).skip(Number(skip)).project({ description: 0 }).toArray();
